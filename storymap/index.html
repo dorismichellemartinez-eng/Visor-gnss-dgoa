@@ -932,11 +932,17 @@ switch (response.index) {
               imgGrafica.src = "graficas/VARIACIONES.png";
               break;
 
-            case 10: // Tarjeta 11: Serie de Tiempo Norte
+              case 10: // Tarjeta 11: Series de Tiempo
               panelGraficas.style.display = 'flex';
-              tituloGrafica.innerText = "Serie de Tiempo Componente Norte";
-              imgGrafica.src = "graficas/N_en26.png";
-              panelImgPequena.style.display = 'none'; // Se oculta
+              tituloGrafica.innerText = "Series de Tiempo — Componentes Geodésicos";
+    
+    // Inyectas ambas imágenes apiladas con un pequeño margen entre ellas
+              panelGraficas.innerHTML = `
+                  <img src="graficas/N_en26.png" style="width: 100%; margin-bottom: 15px; border-radius: 4px;">
+                  <img src="graficas/nombre_de_tu_nueva_imagen.png" style="width: 100%; border-radius: 4px;">
+             `;
+    
+              panelImgPequena.style.display = 'none';
               break;
 
             case 11: // Tarjeta 12: Serie de Tiempo Este
