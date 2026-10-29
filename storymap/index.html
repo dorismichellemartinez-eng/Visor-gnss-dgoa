@@ -417,7 +417,6 @@ html, body {
             <li>Un corto incremento positivo en la pendiente debido al sismo Mw 7.3 de 2009.</li>
             <li>Un salto seguido de un decaimiento exponencial que se prolongó casi 20 años. Esta deformación fue causada por un efecto posterior a una secuencia de tres sismos mayores (Mw > 7) ocurridos en 2012, entre ellos uno Mw 7.3 del 26 de agosto, frente a Puerto El Triunfo, que causó el tsunami en Isla de Méndez, Usulután. Esta fue una relajación postsísmica prolongada, asociada a la disipación progresiva de los esfuerzos inducidos en el manto superior por los eventos de 2012.</li>
             <li>La estación CNR1 registró un cambio significativo en su patrón de deformación a finales de 2010, caracterizado por un levantamiento y por una rotación de aproximadamente 90° en la horizontal (Legrand et al., 2020) adquiriendo un patrón radial opuesto al volcán. Legrand et al. (2020) lo interpretan como evidencia de agitación del volcán de San Salvador, un episodio inflacionario entre la segunda mitad de 2010 hasta agosto de 2012.</li>
-            <li>En las estaciones más occidentales (ALAR y LNUB) se observa un marcado cambio en la dirección norte, este se cree que responde principalmente a deformación tectónica local, ya que se ubican en la Zona de Falla de Ahuachapán, una serie de fallas oblicuas paralelas con dirección NNE-SSO del tipo “bookshelf”. Estas fallas generan una zona de extensión este-oeste al norte de la cordillera de Tacuba. Según Portella et al. 2024, en esta zona la deformación de la ZFES pasa de predominantemente desgarre, en el centro del país, hacia una zona donde domina la extensión E-W al occidente de El Salvador y oriente de Guatemala, una zona bajo la influencia del graben de Ipala y de la unión triple de las placas de Norteamérica, Cocos y el Caribe (Álvarez-Gómez et al., 2019).</li>
           </ul>
           </p>  
           <p>
@@ -425,8 +424,34 @@ html, body {
           </p>  
         </div>
       </div>
+      
+      <!-- 12. CASO ZONA DE FALLA DE AHUACHAPAN-->
+      <div class="step" data-step="9">
+        <div class="card">
+          <span class="tag">5. Series Temporales</span>
+          <h2>Caso Zona de Falla de Ahuachapán</h2>
+          <p>
+            En las estaciones más occidentales (ALAR y LNUB) se observa un marcado cambio en la dirección norte, este se cree que responde principalmente a deformación tectónica local, ya que se ubican en la Zona de Falla de Ahuachapán, una serie de fallas oblicuas paralelas con dirección NNE-SSO del tipo “bookshelf”. Estas fallas generan una zona de extensión este-oeste al norte de la cordillera de Tacuba. Según Portella et al. 2024, en esta zona la deformación de la ZFES pasa de predominantemente desgarre, en el centro del país, hacia una zona donde domina la extensión E-W al occidente de El Salvador y oriente de Guatemala, una zona bajo la influencia del graben de Ipala y de la unión triple de las placas de Norteamérica, Cocos y el Caribe (Álvarez-Gómez et al., 2019).
+          </p>
+      </div>
 
-      <!-- 12. SERIES TEMPORALES: COMPONENTE ESTE -->
+      <!-- 13. VECTORES RELATIVOS -->
+      <div class="step" data-step="9">
+        <div class="card">
+          <span class="tag">4. Cinemática</span>
+          <h2>Vectores Relativos a la Placa de Caribe</h2>
+          <p>
+            Estos vectores muestra cómo se desplazan las estaciones una vez removido el movimiento global de la placa Caribe, lo que permite identificar deformación tectónica local. De esta manera se pueden diferenciar 2 patrones muy claros. 
+          </p>
+          <p>
+            El primero en la parte norte del país, donde los vectores son pequeños ~2 mm/a, debido a que esta parte se desplaza principalmente por el movimiento de la placa Caribe, pero aún tiene influencia de la cinemática del borde de placa, que puede alcanzar cientos de kilómetros costa adentro
+          </p>
+          <p> 
+            El segundo, de la sección de territorio cerca la cadena volcánica y hacia el sur, hasta la costa, cuya dirección de movimiento es predominantemente hacia el oeste. La magnitud de los vectores aumenta gradualmente de norte a sur, hasta alcanzar un máximo en la costa de ~12 mm/a. También se observa mayor velocidad de desplazamiento al oeste, donde varía en rangos de 10 a 12.3 mm/a, y disminuye en la zona oriental hasta rangos de 6 a 11 mm/a.
+        </div>
+      </div>
+      
+      <!-- 14. SERIES TEMPORALES: COMPONENTE ESTE -->
       <div class="step" data-step="11">
         <div class="card">
           <span class="tag">5. Series Temporales</span>
@@ -446,7 +471,7 @@ html, body {
         </div>
       </div>
 
-      <!-- 13. SERIES TEMPORALES: COMPONENTE VERTICAL -->
+      <!-- 15. SERIES TEMPORALES: COMPONENTE VERTICAL -->
       <div class="step" data-step="12">
         <div class="card">
           <span class="tag">5. Series Temporales</span>
@@ -932,48 +957,34 @@ case 9: // Variaciones Temporales
     if (imgGrafica) imgGrafica.src = "graficas/VARIACIONES.png";
     if (panelImgPequena) panelImgPequena.style.display = 'none';
     break;
-
-case 10: // Series de Tiempo (Doble gráfica)
+case 10: // Tarjeta de la primera serie de tiempo
     if (panelGraficas) panelGraficas.style.display = 'flex';
-    if (tituloGrafica) tituloGrafica.innerText = "Series de Tiempo — Componentes Geodésicos";
-    
-    // Si la imagen principal existe, cargamos la primera
+    if (tituloGrafica) tituloGrafica.innerText = "Serie de Tiempo — Componente Norte (Parte 1)";
     if (imgGrafica) imgGrafica.src = "graficas/N_en26.png";
-    
-    // Inyectamos la segunda imagen de forma segura
-    let contenedorDoble = document.getElementById('contenedor-doble-grafica');
-    if (!contenedorDoble && imgGrafica) {
-        contenedorDoble = document.createElement('div');
-        contenedorDoble.id = 'contenedor-doble-grafica';
-        imgGrafica.parentNode.insertBefore(contenedorDoble, imgGrafica.nextSibling);
-    }
-    if (contenedorDoble) {
-        contenedorDoble.innerHTML = `<img src="graficas/imagen.png" style="width: 100%; margin-top: 10px; border-radius: 4px;">`;
-    }
-    
     if (panelImgPequena) panelImgPequena.style.display = 'none';
     break;
 
-case 11: // Serie de Tiempo Este
-    // Limpiamos el contenedor doble al salir
-    let extraDiv11 = document.getElementById('contenedor-doble-grafica');
-    if (extraDiv11) extraDiv11.innerHTML = '';
+case 11: // ¡Nuevo case exclusivo para la segunda imagen!
+    if (panelGraficas) panelGraficas.style.display = 'flex';
+    if (tituloGrafica) tituloGrafica.innerText = "Serie de Tiempo — Componente Norte (Parte 2)";
+    if (imgGrafica) imgGrafica.src = "graficas/tu_nueva_imagen.png"; // El archivo que subiste
+    if (panelImgPequena) panelImgPequena.style.display = 'none';
+    break;
 
+case 12: // Serie de Tiempo Este
     if (panelGraficas) panelGraficas.style.display = 'flex';
     if (tituloGrafica) tituloGrafica.innerText = "Serie de Tiempo Componente Este";
     if (imgGrafica) imgGrafica.src = "graficas/E_itrf14.png";
     if (panelImgPequena) panelImgPequena.style.display = 'none';
     break;
 
-case 12: // Serie de Tiempo Vertical
-    let extraDiv12 = document.getElementById('contenedor-doble-grafica');
-    if (extraDiv12) extraDiv12.innerHTML = '';
-
+case 13: // Serie de Tiempo Vertical
     if (panelGraficas) panelGraficas.style.display = 'flex';
     if (tituloGrafica) tituloGrafica.innerText = "Serie de Tiempo Componente Vertical";
     if (imgGrafica) imgGrafica.src = "graficas/V_en26.png";
     if (panelImgPequena) panelImgPequena.style.display = 'none';
     break;
+
 
 default:
     if (panelGraficas) panelGraficas.style.display = 'none';
