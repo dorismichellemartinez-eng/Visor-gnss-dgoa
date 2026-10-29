@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StoryMap - Red GNSS y Deformación en El Salvador</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <script src="https://unpkg.com/scrollama"></script>
+  
+  <!-- Tipografía Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Quita el cuadro blanco que Leaflet le pone por defecto a los divIcon */
+    .station-triangle-icon {
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .vector-harpon-icon {
+        background: transparent !important;
+        border: none !important;
+    }
+
+html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+    #storymap-container {
+      display: flex;
+      flex-direction: row;
+      width: 100vw;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Columna izquierda: Narrativa que fluye con la página */
+    #scrolly-narrativa {
+      width: 48%;
+      padding: 2.5rem 2rem;
+      background: #ffffff;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      z-index: 10;
+    }
+
+    .header-story {
+      margin-bottom: 3rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .header-story h1 {
+      font-size: 1.7rem;
+      color: #1e3a8a;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-story p {
+      font-size: 0.9rem;
+      color: #6c757d;
+      line-height: 1.5;
+    }
+
+    /* Pasos del StoryMap */
+.step {
+            min-height: 80vh;
+            margin-bottom: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+    .card {
+      background: #f8fafc;
+      border-left: 4px solid #1e3a8a;
+      padding: 1.5rem;
+      border-radius: 0 8px 8px 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+      color: #0f172a;
+      margin-bottom: 0.8rem;
+    }
+
+    .card p {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 0.8rem;
+      text-align: justify;
+    }
+
+    .card .tag {
+      display: inline-block;
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-img-placeholder {
+      margin-top: 10px;
+      padding: 10px;
+      background: #e2e8f0;
+      text-align: center;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: #475569;
+    }
+
+    .estacion-label {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #7f8c8d;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #2c3e50;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+/* Columna derecha: Mapa fijo (Sticky) */
+#map-container {
+    flex: 1;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    min-height: 500px;
+    align-self: flex-start; /* <--- ¡Esta línea faltaba en la versión de escritorio! Evita que el mapa se estire con el texto */
+    z-index: 1;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+    @media (max-width: 768px) {
+      #storymap-container {
+        flex-direction: column-reverse;
+      }
+      #scrolly-narrativa {
+        width: 100%;
+      }
+      #map-container {
+        flex: 1;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        min-height: 400px;
+        align-self: flex-start;
+        z-index: 1;
+      }
+    }
+
+   /* Panel flotante de las gráficas sobre el mapa */
+#panel-graficas {
+    display: none;
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    width: 600px; /* Aumentamos el ancho total del panel */
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(5px);
+    padding: 20px;
+    border-radius: 12px;
+    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Y aseguramos que la imagen dentro también aproveche el espacio */
+#imagen-grafica {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    max-height: 450px; /* Aumentamos la altura máxima para que luzca grande */
+    object-fit: contain;
+}
+
+/* Cabecera y botón de cerrar del panel */
+#panel-graficas .grafica-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 8px;
+}
+
+#titulo-grafica {
+    margin: 0;
+    font-size: 16px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+#panel-graficas .btn-cerrar {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #7f8c8d;
+    transition: color 0.2s;
+}
+
+#panel-graficas .btn-cerrar:hover {
+    color: #e74c3c;
+} 
+  </style>
+</head>
+<body>
+
+  <div id="storymap-container">
+    
+    <!-- PANEL IZQUIERDO: Contenido adaptado del PPT -->
+    <div id="scrolly-narrativa">
+      
+      <div class="header-story">
+        <h1>Antecedentes e Historia del despliegue de la red GNSS en El Salvador</h1>
+        <p>Análisis de deformación cortical en El Salvador mediante redes GNSS — Direccion General del Observatorio de Amenazas y Recursos Naturales (MARN).</p>
+      </div>
+
+      <!-- 1. INTRODUCCIÓN Y MARCO TECTÓNICO -->
+      <div class="step" data-step="0">
+        <div class="card">
+          <span class="tag">1. Introducción y Tectónica</span>
+          <h2>Contexto Regional y Nacional</h2>
+          <p>
+            América Central se define geográficamente como el área terrestre y de plataforma continental que se extiende desde el istmo de Tehuantepec, en México, al sureste del país, hasta las tierras bajas de Atrato en Colombia (Álvarez-Gómez, 2009). Políticamente, está constituido por Guatemala, Belice, El Salvador, Honduras, Nicaragua, Costa Rica y Panamá. El Salvador se sitúa al norte de Centroamérica, en el margen del océano Pacífico al noroeste de la placa Caribe, formando parte del extremo occidental del bloque de Chortis. Este bloque, principalmente compuesto de corteza continental, queda limitado al norte y noroeste por el límite entre las placas norteamericana y del caribe, al sur por el arco volcánico y la fosa centroamericana, al sureste por el escarpe de Hess y al este-noreste se extiende por el Banco de Nicaragua (o Alto Nicaragüense) (Álvarez-Gómez, 2009).
+          </p>
+          <p>
+            Según Staller (2014), El Salvador es uno de los países centroamericanos con un régimen tectónico más complejo, incluyendo la parte norte del Arco Volcánico Centroamericano, que se extiende desde Guatemala a Costa Rica a lo largo del margen Pacífico activo. Este arco volcánico está asociado con la subducción de la placa del Coco bajo la placa Caribe. La placa del Coco subduce bajo la placa Caribe a una velocidad de 70-85 mm/a con una pequeña componente oblicua (DeMets et al., 2010) aunque el grado de acoplamiento varía, disminuyendo desde Guatemala hacia el SE (Álvarez-Gómez et al., 2008). El bloque de antearco, situado entre la fosa Mesoamericana y el arco volcánico, sufre un movimiento relativo hacia el noroeste (paralelo a la fosa) respecto de la placa Caribe a una velocidad de ~14 mm/a (DeMets, 2001; Rodriguez et al., 2009; Correa-Mora et al., 2009; Alvarado et al., 2011; Franco et al., 2012). Este movimiento relativo paralelo a la fosa se traduce a la vez en la existencia de un sistema de fallas de desgarre en el continente alineadas con la cadena volcánica con una importante actividad sísmica. La velocidad de algunas de las fallas individuales de este sistema, como la Zona de Falla de El Salvador (ZFES) que cruza el país de este a oeste, supera los 4 mm/año según estudios recientes de paleosismicidad (Canora et al., 2012).
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. ANTECEDENTES -->
+      <div class="step" data-step="1">
+        <div class="card">
+          <span class="tag">2. Antecedentes</span>
+          <h2>Proyectos de Cooperación</h2>
+          <p>
+            En 2004, con el apoyo de la Universidad de Wisconsin-Madison, se estableció una red inicial de 13 estaciones GPS de campaña. Los sitios monitoreados tenían el objetivo de caracterizar el movimiento de la Placa del Caribe y determinar los vectores de velocidad asociados. Como parte del mismo proyecto, entre 2007 y 2008 se instalaron las primeras cuatro estaciones de medición continua, marcando un cambio hacia una vigilancia más constante.
+          </p>
+          <p>
+            Un segundo proyecto de colaboración con las universidades Complutense de Madrid y Politécnica de Madrid en 2007, permitió complementar con campañas realizadas en más de 30 sitios de medición (imagen 2). Este proyecto se enfocó en la caracterización de la Zona de Falla de El Salvador (ZFES), un alineamiento de fallas de desgarre que atraviesan el país paralelamente a la subducción entre las placas de Cocos y Caribe 
+          </p>
+          <p>
+            Gracias a estos estudios se ha podido determinar la deformación co-sísmica y la asociada a esfuerzos viscoelásticos inducidos en el manto por sismos fuertes. Se han mejorado los modelos de deriva de la placa del Caribe, modelizaciones cinemáticas de bloques que indican un bajo grado de acople en la subducción frente a la costa salvadoreña y uno alto en las fallas de la ZFES, apoyando la hipótesis de que el mecanismo principal, que le da origen, es el efecto de pinzamiento que se da en la triple unión de las placas de Caribe, Coco y Norteamérica. 
+        </div>
+      </div>
+
+      <!-- 3. COMPLEJO SANTA ANA -->
+      <div class="step" data-step="3">
+        <div class="card">
+          <span class="tag">2. Antecedentes</span>
+          <h2>Monitoreo del Complejo Volcánico Santa Ana</h2>
+          <p>
+            Entre 2008 y 2009, con la colaboración de la Universidad de Michigan Tech., se estableció una red temporal en el complejo volcánico de Santa Ana y la caldera de Coatepeque. Se detectaron importantes desplazamientos verticales y deflaciones, atribuidos a una fuente localizada en el sistema volcánico, lo que proporcionó información valiosa sobre la dinámica interna de esta región. 
+        </div>
+      </div>
+
+      <!-- 4. COMPLEJO SAN MIGUEL -->
+      <div class="step" data-step="4">
+        <div class="card">
+          <span class="tag">2. Antecedentes</span>
+          <h2>Monitoreo del Complejo Volcánico San Miguel</h2>
+          <p>
+            En 2012 se dio inicio a un monitoreo en los volcanes activos de San Salvador y San Miguel, estableciendo campañas que más tarde evolucionaron hacia redes más permanentes. Un hito importante fue la erupción del volcán de San Miguel en diciembre de 2013, que permitió, en colaboración con el Instituto Geológico y Volcánico de Italia (INGV), instalar una red de 10 sitios de vigilancia por 4 meses. Se determinó que los procesos involucraron principalmente la parte superior del sistema de alimentación del volcán, lo que contribuyó a una mejor comprensión de esa erupción.
+          </p>
+        </div>
+      </div>
+
+      <!-- 5. ESTACIONES PERMANENTES -->
+      <div class="step" data-step="5">
+        <div class="card">
+          <span class="tag">2. Antecedentes</span>
+          <h2>Estciones Permanentes</h2>
+          <p>
+            Otros proyectos de cooperación para el reforzamiento de los sistemas de alerta temprana, han proveído de equipo o infraestructura para estaciones de carácter permanente. Estos han tenido lugar con la Agencia Internacional de Cooperación del Japón (JICA), “Volcano Disaster Assistance Program” (VDAP) y “Space and Earth Geodetic Analysis Laboratory” (SEGAL). Como seguimiento de estos proyectos, el MARN mantiene una red de 12 estaciones permanentes.
+          </p>
+        </div>
+      </div>
+
+      <!-- 6. PROCESAMIENTO -->
+      <div class="step" data-step="6">
+        <div class="card">
+          <span class="tag">3. Metodología</span>
+          <h2>Consideraciones del Procesamiento (GAMIT/GLOBK)</h2>
+          <p>
+            Obtención de coordenadas diarias de cada estación: se calculan con el software GAMIT/GLOBK, desarrollado conjuntamente por Massachusetts Institute of Technology, el Scripps Institution of Oceanography y la Universidad de Harvard. GAMIT/GLOBK consta de dos partes. La primera es GAMIT, que es un software de procesamiento de líneas base que utiliza observaciones de fase portadora GNSS para posicionamiento e integración orbital (Li et al., 2021). 
+          </p>
+          <p>
+            La segunda parte es GLOBK, un filtro de Kalman cuyo propósito principal es combinar diversas soluciones geodésicas. Acepta como datos, o “cuasi observaciones”, las estimaciones y matrices de covarianza de coordenadas de estaciones, parámetros de orientación de la Tierra, parámetros orbitales y posiciones de fuentes, generadas a partir del análisis primario de GAMIT (MIT Geoweb, s.f.).
+          </p>
+          <p>
+            Los datos procesados abarcan 2004 y 2025 de las estaciones permanente y de las mediciones de campaña, las que tuvieron mediciones después de 2012.
+        </div>
+      </div>
+
+      <!-- 7. VECTORES HORIZONTALES -->
+      <div class="step" data-step="7">
+        <div class="card">
+          <span class="tag">4. Cinemática</span>
+          <h2>Vectores Absolutos de Velocidad Horizontal</h2>
+          <p>
+            Los vectores de velocidad absoluta es la dirección y rapidez con que se mueven las estaciones respecto al sistema de referencia global fijo a la Tierra ITRF2014.
+          </p>
+          <p>
+            Describen cuanto se desplazan en la dirección horizontal debido la combinación de varios fenómenos, en el contexto salvadoreño, estos incluyen: la velocidad tangencial de la deriva de la placa del Caribe, la convergencia de las placas Coco y Caribe, el desplazamiento del antearco salvadoreño, deslizamientos de tierra, actividad sísmica o volcánica.
+          </p>
+          <p>
+            En este contexto, el promedio del campo de velocidad horizontal es de ~7.1 mm/año.
+        </div>
+      </div>
+
+      <!-- 8. VECTORES VERTICALES -->
+      <div class="step" data-step="8">
+        <div class="card">
+          <span class="tag">4. Cinemática</span>
+          <h2>Vectores Absolutos de Velocidad Vertical</h2>
+          <p>
+            Los vectores verticales muestran que el territorio salvadoreño no tiene un movimiento vertical significativo, posiblemente menos de 1 mm/año de levantamiento. 
+          </p>
+          <p>
+            Esto es difícil de definir, debido a las múltiples influencias, tanto tectónicas como volcánicas, por ejemplo, la cordillera de Apaneca y el volcán de San Miguel, donde se observa un patrón de hundimiento.
+          </p>
+          <p>
+            Así mismo, un pequeño levantamiento de la zona costera central y occidente de la cordillera de la cordillera de El Bálsamo (2-3 mm/año).
+        </div>
+      </div>
+
+      <!-- 9. VECTORES RELATIVOS -->
+      <div class="step" data-step="9">
+        <div class="card">
+          <span class="tag">4. Cinemática</span>
+          <h2>Vectores Relativos a la Placa de Caribe</h2>
+          <p>
+            Estos vectores muestra cómo se desplazan las estaciones una vez removido el movimiento global de la placa Caribe, lo que permite identificar deformación tectónica local. De esta manera se pueden diferenciar 2 patrones muy claros. 
+          </p>
+          <p>
+            El primero en la parte norte del país, donde los vectores son pequeños ~2 mm/a, debido a que esta parte se desplaza principalmente por el movimiento de la placa Caribe, pero aún tiene influencia de la cinemática del borde de placa, que puede alcanzar cientos de kilómetros costa adentro
+          </p>
+          <p> 
+            El segundo, de la sección de territorio cerca la cadena volcánica y hacia el sur, hasta la costa, cuya dirección de movimiento es predominantemente hacia el oeste. La magnitud de los vectores aumenta gradualmente de norte a sur, hasta alcanzar un máximo en la costa de ~12 mm/a. También se observa mayor velocidad de desplazamiento al oeste, donde varía en rangos de 10 a 12.3 mm/a, y disminuye en la zona oriental hasta rangos de 6 a 11 mm/a.
+        </div>
+      </div>
+
+<!-- 10. CAMBIOS TEMPORALES EN LOS VECTORES RELATIVOS -->
+      <div class="step" data-step="10">
+        <div class="card">
+          <span class="tag">5. Series Temporales</span>
+          <h2>Cambios temporales en los vectores relativos</h2>
+          <p>
+            Para mostrar cómo cambiaron en el tiempo las tasas de desplazamiento dentro del territorio, se calcularon las velocidades separando los datos en segmentos de tiempo según la fecha de los eventos siguientes:
+          </p>
+          <ul style="font-size: 0.85rem; line-height: 1.5; color: #334155; padding-left: 1.2rem; text-align: justify;">
+            <li>Establecimiento en El Salvador de una estación mundial de referencia geodésica IGS (International GNSS Service) —SSIA— en octubre de 2000</li>
+            <li>Inicio de mediciones por campaña en enero de 2004.</li>
+            <li>Inicio de las mediciones continuas en mayo de 2007.</li>
+            <li>Sismo Mw 7.3 de la falla de Swan el 28 de mayo de 2009.</li>
+            <li>Punto de inflexión de episodio de deformación registrado en la estación CNR1 en octubre de 2010.</li>
+            <li>Sismo Mw 7.3 frente a puerto El Triunfo el 26 de agosto de 2012.</li>
+            <li>Actividad posteruptiva del volcán de San Miguel de enero a abril de 2014.</li>
+            <li>Sismo de Mw 6.9 al sur de puerto El Triunfo en noviembre de 2016.</li>
+            <li>Enjambre en la zona de Chirilagua e Intipucá en mayo de 2018.</li>
+            <li>Disipación de deformación por sismo Mw 7.3 de 2012 + sismo Mw 6.6 al sur La Libertad en mayo de 2019.</li>
+            <li>Cambio en dirección norte de las estaciones ALAR y LNUB, entre marzo de 2022 y febrero de 2023.</li>
+            <li>Abril de 2025, último dato procesado hasta la fecha de elaboración de este informe.</li>
+          </ul>
+          <p> 
+            Hacer click-der para ampliar la vista.
+          </p>
+        </div>
+      </div>
+
+      <!-- 11. SERIES TEMPORALES: COMPONENTE NORTE -->
+      <div class="step" data-step="10">
+        <div class="card">
+          <span class="tag">5. Series Temporales</span>
+          <h2>Series de tiempo, componente Norte (N)</h2>
+          <p>
+            Gráficas apiladas del desplazamiento reducido de la posición en latitud para cada estación, respecto al movimiento relativo de la placa del Caribe, ordenadas por su ubicación de este a oeste.
+          </p>
+          <p>
+            El eje Y es el desplazamiento en mm, la escala es sólo para efectos ilustrativos. El eje X es el tiempo en años. En la tabla de la derecha está la velocidad y sus sigmas, calculada para todo el período mostrado.
+          </p>
+          <p>
+            Las líneas punteadas verticales señalan los sismos: enero y febrero 2001 en El Salvador, Mw 7.3 mayo de 2009 en la falla de Swan, Mw 7.3 frente a puerto el Triunfo en agosto 2012, Mw 7.3 frente a Intipucá en octubre de 2014, Mw 6.9 frente puerto el Triunfo en noviembre de 2016, Mw 6.8 y Mw 6.9 en la costa de Guatemala en junio de 2017, y Mw 6.6 frente al puerto de La Libertad en mayo de 2019. No todos estos sismos generaron deformación medible en las estaciones.
+          </p>
+          <p>
+            Los cambios más notables en las series de tiempo son:
+          </p>
+          <ul style="font-size: 0.85rem; line-height: 1.5; color: #334155; padding-left: 1.2rem; text-align: justify;">
+            <li>Un salto en SSIA debido a los sismos de enero y febrero de 2001.</li>
+            <li>Un corto incremento positivo en la pendiente debido al sismo Mw 7.3 de 2009.</li>
+            <li>Un salto seguido de un decaimiento exponencial que se prolongó casi 20 años.</li>
+          </ul>          
+          <p>
+            Esta deformación fue causada por un efecto posterior a una secuencia de tres sismos mayores (Mw > 7) ocurridos en 2012, entre ellos uno Mw 7.3 del 26 de agosto, frente a Puerto El Triunfo, que causó el tsunami en Isla de Méndez, Usulután. Esta fue una relajación postsísmica prolongada, asociada a la disipación progresiva de los esfuerzos inducidos en el manto superior por los eventos de 2012.
+          </p>  
+          <p>
+            Hacer click-der para ampliar la vista.
+          </p>  
+        </div>
+      </div>
+
+      <!-- 12. SERIES TEMPORALES: COMPONENTE ESTE -->
+      <div class="step" data-step="11">
+        <div class="card">
+          <span class="tag">5. Series Temporales</span>
+          <h2>Series de tiempo, componente Este (E)</h2>
+          <p>
+            Gráficas apiladas del desplazamiento reducido de la posición en longitud para cada estación, respecto al movimiento relativo de la placa del Caribe, ordenadas por su ubicación de este a oeste.
+          </p>
+          <p>
+            El eje Y es el desplazamiento en mm, la escala es sólo para efectos ilustrativos. El eje X es el tiempo en años. 
+          </p>
+          <p>
+            Las líneas punteadas verticales señalan los sismos principales. No todos estos sismos generaron deformación medible en las estaciones.
+          </p>
+          <p>
+           Hacer click-der para ampliar la vista.
+          </p>  
+        </div>
+      </div>
+
+      <!-- 13. SERIES TEMPORALES: COMPONENTE VERTICAL -->
+      <div class="step" data-step="12">
+        <div class="card">
+          <span class="tag">5. Series Temporales</span>
+          <h2>Series de tiempo, componente Vertical</h2>
+          <p>
+            Gráficas apiladas del desplazamiento reducido de la altura elipsoidal para cada estación, respecto al movimiento relativo de la placa del Caribe, ordenadas de este a oeste.
+          </p>
+          <p>
+            El eje Y es el desplazamiento en mm, la escala es sólo para efectos ilustrativos. El eje X es el tiempo en años.
+          </p>
+          <p>           
+            Las líneas punteadas verticales señalan los sismos de referencia. No todos estos sismos generaron deformación medible en las estaciones.
+          </p>
+          <p>
+            Hacer click-der para ampliar la vista.
+          </p>  
+        </div>
+      </div>    
+
+    </div> <!-- Cierre de #scrolly-narrativa -->
+
+    <!-- PANEL DERECHO: Mapa interconectado -->
+<div id="map-container">
+    
+    <!-- 1. Tu mapa -->
+    <div id="map"></div>
+
+    <!-- Panel pequeño flotante para la esquina superior derecha -->
+<div id="panel-imagen-pequena" style="display: none; position: absolute; top: 20px; right: 20px; width: 320px; background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 8px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+    <h5 id="titulo-img-pequena" style="margin: 0 0 8px 0; font-size: 14px; color: #2c3e50; font-weight: bold;">Figura explicativa</h5>
+    <img id="img-pequena" src="" alt="Imagen de contexto" style="width: 100%; height: auto; border-radius: 4px; display: block;">
+</div>
+
+    <!-- 2. El panel grande de gráficas -->
+    <div id="panel-graficas" style="display: none; position: absolute; top: 15px; left: 15px; right: 15px; bottom: 15px; background: rgba(255, 255, 255, 0.98); padding: 25px; border-radius: 12px; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">
+            <h4 id="titulo-grafica" style="margin: 0; font-size: 20px; color: #2c3e50; font-weight: bold;">Gráfica</h4>
+            <button onclick="cerrarGrafica()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #7f8c8d; font-weight: bold;">&times;</button>
+        </div>
+        <div style="flex: 1; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+            <img id="imagen-grafica" src="" alt="Gráfica de serie temporal" style="max-width: 100%; max-height: 100%; height: auto; border-radius: 6px; object-fit: contain;">
+        </div>
+    </div>
+
+</div>
+
+  </div> <!-- Cierre de #storymap-container -->
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Scrollama JS -->
+  <script src="https://unpkg.com/scrollama"></script>
+
+<script>
+let mapa;
+let capaFallas, capaPermanentes, capaCampana, capaVert, capaPeriodos, capaCaribe, capaAbs;
+
+document.addEventListener("DOMContentLoaded", async function () {
+// 1. Inicializar el mapa centrado en El Salvador
+const mapa = L.map('map', {
+    center: [13.7942, -88.8965], // Coordenadas aproximadas del país
+    zoom: 8,
+    zoomControl: false
+});
+
+// Mapa base limpio, claro, con topografía y sin requerir API Key
+const mapaBaseLibre = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+}).addTo(mapa);
+        // Forzar a Leaflet a calcular el tamaño inmediatamente
+        setTimeout(() => {
+            mapa.invalidateSize();
+        }, 300);
+
+        // Función auxiliar segura para cargar cada GeoJSON individualmente
+        async function cargarGeoJSON(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`No se encontró: ${url}`);
+                return await res.json();
+            } catch (err) {
+                console.warn(`Aviso: No se pudo cargar ${url}`, err);
+                return null; // Devuelve null si falla para que no rompa el mapa
+            }
+        }
+
+        // 3. Cargar todos los archivos de forma segura
+        const dataFallas   = await cargarGeoJSON('VECTORES/Fallas_ZFES.geojson');
+        const dataPerm     = await cargarGeoJSON('VECTORES/estaciones_permanentes.geojson');
+        const dataCamp     = await cargarGeoJSON('VECTORES/estaciones_camp.geojson');
+        const dataVert     = await cargarGeoJSON('VECTORES/verticales.geojson');
+        const dataPeriodos = await cargarGeoJSON('VECTORES/periodos_funcionapls.geojson');
+        const dataCaribe   = await cargarGeoJSON('VECTORES/caribe_fijo.geojson');
+        const dataAbs      = await cargarGeoJSON('VECTORES/Absolutas_.geojson');
+
+        // FUNCIÓN AUXILIAR: Crear iconos SVG en forma de triángulo para las estaciones
+        function crearIconoTriangulo(fillColorHex, strokeColorHex) {
+            return L.divIcon({
+                className: 'station-triangle-icon',
+                html: `<svg width="20" height="20" viewBox="0 0 24 24" style="display: block; overflow: visible;">
+                       <polygon points="12,2 22,22 2,22" fill="${fillColorHex}" stroke="${strokeColorHex}" stroke-width="2" stroke-linejoin="round" />                           </svg>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+
+        // FUNCIÓN AUXILIAR: Crear icono SVG tipo arpón
+        function crearIconoHarpon(colorHex) {
+            return L.divIcon({
+                className: 'vector-harpon-icon',
+                html: `<svg width="28" height="28" viewBox="0 0 28 28" style="overflow:visible; transform: rotate(-45deg);">
+                         <line x1="4" y1="14" x2="24" y2="14" stroke="${colorHex}" stroke-width="2.5" />
+                         <path d="M 16 7 L 24 14 L 16 14" fill="none" stroke="${colorHex}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                       </svg>`,
+                iconSize: [28, 28],
+                iconAnchor: [4, 14]
+            });
+        }
+
+        // Crear capas de forma segura con estilos estándar de Leaflet
+        if (dataFallas) {
+            capaFallas = L.geoJSON(dataFallas, {
+                style: { color: "#000000", weight: 1.5, opacity: 0.9 },
+                onEachFeature: (f, l) => l.bindPopup(`<b>Falla:</b> ${f.properties.name || "ZFES"}`)
+            });
+            capaFallas.addTo(mapa); // Mostrar capa inicial por defecto
+        }
+
+// Capa de Estaciones Permanentes (Triángulos azules)
+if (dataPerm) {
+    capaPermanentes = L.geoJSON(dataPerm, {
+        pointToLayer: (f, latlng) => L.marker(latlng, {
+            icon: crearIconoTriangulo("#2980b9", "#ffffff")
+        }),
+        onEachFeature: (f, l) => {
+            const nombre = f.properties && f.properties.Name ? f.properties.Name : 'Estación';
+            l.bindPopup(`<b>Estación Permanente:</b> ${nombre}`);
+        }
+    });
+}
+
+// Capa de Estaciones de Campaña (Triángulos naranjas)
+if (dataCamp) {
+    capaCampana = L.geoJSON(dataCamp, {
+        pointToLayer: (f, latlng) => L.marker(latlng, {
+            icon: crearIconoTriangulo("#e67e22", "#ffffff")
+        }),
+        onEachFeature: (f, l) => {
+            const nombre = f.properties && f.properties.Name ? f.properties.Name : 'Estación';
+            l.bindPopup(`<b>Estación de Campaña:</b> ${nombre}`);
+        }
+    });
+}
+
+        // Capas de vectores con estilos de línea estándar (compatibles si tus GeoJSON son LineString)
+if (dataVert) {
+    let grupoVert = L.layerGroup();
+
+    // 0. Preprocesar las coordenadas: si la magnitud es negativa, 
+    // invertimos la dirección de la línea para que crezca hacia abajo.
+    if (dataVert.features) {
+        dataVert.features.forEach(f => {
+            const rawMag = f.properties.etiqueta !== undefined ? f.properties.etiqueta 
+                         : f.properties.UP !== undefined ? f.properties.UP 
+                         : 0;
+            
+            if (rawMag < 0 && f.geometry && f.geometry.type === "LineString" && f.geometry.coordinates.length >= 2) {
+                const p1 = f.geometry.coordinates[0]; // Estación base
+                const p2 = f.geometry.coordinates[1]; // Punta original hacia arriba
+                const dx = p2[0] - p1[0];
+                const dy = p2[1] - p1[1];
+                // Invertimos la dirección del extremo para que vaya hacia abajo
+                f.geometry.coordinates[1] = [p1[0] - dx, p1[1] - dy];
+            }
+        });
+    }
+
+    // 1. Dibujar las líneas base de los vectores verticales
+    const lineasVert = L.geoJSON(dataVert, {
+        style: { color: "#0000FF", weight: 2.5, opacity: 0.9 },
+        onEachFeature: (f, l) => {
+            const rawMag = f.properties.etiqueta !== undefined ? f.properties.etiqueta 
+                         : f.properties.UP !== undefined ? f.properties.UP 
+                         : f.properties.Vel_mag;
+            
+            const valMag = (rawMag !== null && rawMag !== "" && !isNaN(rawMag)) ? Number(rawMag) : null;
+            const nombreEst = f.properties.field_1 || f.properties.EST || f.properties.name || "";
+
+            // Popup al hacer clic
+            l.bindPopup(`<b>Estación:</b> ${nombreEst}<br><b>Velocidad Vertical:</b> ${valMag !== null ? valMag.toFixed(2) + " mm/a" : "N/D"}`);
+            
+            // Tooltip flotante al pasar el cursor
+            if (valMag !== null) {
+                l.bindTooltip(`${valMag.toFixed(2)} mm/a`, {
+                    permanent: false, 
+                    direction: 'right',
+                    className: 'vector-label',
+                    offset: [5, 0]
+                });
+            }
+            
+            // 2. Colocar la punta de arpón al final del vector (ya adaptado a su dirección correcta)
+            if (f.geometry && f.geometry.type === "LineString") {
+                const coords = f.geometry.coordinates;
+                if (coords.length >= 2) {
+                    const p1 = coords[coords.length - 2]; 
+                    const p2 = coords[coords.length - 1]; 
+                    
+                    const dx = p2[0] - p1[0];
+                    const dy = p2[1] - p1[1];
+                    const angle = Math.atan2(-dy, dx) * (180 / Math.PI);
+                    
+                    const iconoHarpon = L.divIcon({
+                        className: 'vector-harpon-icon',
+                        html: `<svg width="18" height="18" viewBox="0 0 24 24" style="display: block; overflow: visible; transform: rotate(${angle}deg); transform-origin: center;">
+                                 <path d="M 4 12 L 22 12 M 17 9 L 22 12 L 17 15" fill="none" stroke="#0000FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                               </svg>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    
+                    const markerPunta = L.marker([p2[1], p2[0]], { icon: iconoHarpon });
+                    grupoVert.addLayer(markerPunta);
+                }
+            }
+        }
+    });
+
+    grupoVert.addLayer(lineasVert);
+    capaVert = grupoVert; 
+}
+
+        if (dataPeriodos) {
+            capaPeriodos = L.geoJSON(dataPeriodos, {
+               style: { color: "#0000FF", weight: 3, opacity: 0.9 },
+               onEachFeature: (f, l) => l.bindPopup(`<b>Periodos:</b> ${f.properties.name || ""}`)
+           });
+        }
+
+if (dataCaribe) {
+    let grupoCaribe = L.layerGroup();
+
+    // 1. Dibujar las líneas base de los vectores de Caribe
+    const lineasCaribe = L.geoJSON(dataCaribe, {
+        style: { color: "#ff0000", weight: 2.5, opacity: 0.9 },
+        onEachFeature: (f, l) => {
+            // Buscar automáticamente cualquier propiedad que contenga "VZFES"
+            const keys = Object.keys(f.properties);
+            const vfesKey = keys.find(k => k.includes('VZFES'));
+            const rawMag = vfesKey ? f.properties[vfesKey] : null;
+            const valMag = (rawMag !== null && rawMag !== "" && !isNaN(rawMag)) ? Number(rawMag) : null;
+
+            // El nombre de la estación está en 'field_1' según tu tabla de QGIS
+            const nombreEst = f.properties.field_1 || f.properties.EST || f.properties.name || "";
+
+            // Popup al hacer clic
+            l.bindPopup(`<b>Estación:</b> ${nombreEst}<br><b>Magnitud Caribe:</b> ${valMag !== null ? valMag.toFixed(2) + " mm/a" : "N/D"}`);
+            
+            // Tooltip flotante al pasar el cursor
+            if (valMag !== null) {
+                l.bindTooltip(`${valMag.toFixed(2)} mm/a`, {
+                    permanent: false, 
+                    direction: 'right',
+                    className: 'vector-label',
+                    offset: [5, 0]
+                });
+            }
+            
+            // 2. Calcular la rotación del vector y poner la punta de arpón al final
+            if (f.geometry && f.geometry.type === "LineString") {
+                const coords = f.geometry.coordinates;
+                if (coords.length >= 2) {
+                    const p1 = coords[coords.length - 2]; 
+                    const p2 = coords[coords.length - 1]; 
+                    
+                    const dx = p2[0] - p1[0];
+                    const dy = p2[1] - p1[1];
+                    const angle = Math.atan2(-dy, dx) * (180 / Math.PI);
+                    
+                    const iconoHarpon = L.divIcon({
+                        className: 'vector-harpon-icon',
+                        html: `<svg width="18" height="18" viewBox="0 0 24 24" style="display: block; overflow: visible; transform: rotate(${angle}deg); transform-origin: center;">
+                                 <path d="M 4 12 L 22 12 M 17 9 L 22 12 L 17 15" fill="none" stroke="#ff0000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                               </svg>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    
+                    const markerPunta = L.marker([p2[1], p2[0]], { icon: iconoHarpon });
+                    grupoCaribe.addLayer(markerPunta);
+                }
+            }
+        }
+    });
+
+    grupoCaribe.addLayer(lineasCaribe);
+    capaCaribe = grupoCaribe; 
+}
+
+if (dataAbs) {
+    let grupoAbs = L.layerGroup();
+
+    // 1. Dibujar las líneas base de los vectores
+    const lineasAbs = L.geoJSON(dataAbs, {
+        style: { color: "#0000FF", weight: 2.5, opacity: 0.9 },
+        onEachFeature: (f, l) => {
+            // Extraer y asegurar que la magnitud sea un número válido
+            const rawMag = f.properties.Vel_mag !== undefined ? f.properties.Vel_mag : f.properties.magnitud;
+            const valMag = (rawMag !== null && rawMag !== "" && !isNaN(rawMag)) ? Number(rawMag) : null;
+
+            // Popup al hacer clic con la información completa
+            l.bindPopup(`<b>Estación:</b> ${f.properties.EST || f.properties.name || ""}<br><b>Magnitud:</b> ${valMag !== null ? valMag.toFixed(2) + " mm/a" : "N/D"}`);
+            
+            // Tooltip al pasar el cursor (permanent: false para evitar saturación de escala)
+            if (valMag !== null) {
+                l.bindTooltip(`${valMag.toFixed(2)} mm/a`, {
+                    permanent: false, 
+                    direction: 'right',
+                    className: 'vector-label',
+                    offset: [5, 0]
+                });
+            }
+            
+            // 4. Calcular la rotación del vector y poner la punta de arpón al final
+            if (f.geometry && f.geometry.type === "LineString") {
+                const coords = f.geometry.coordinates;
+                if (coords.length >= 2) {
+                    const p1 = coords[coords.length - 2]; // Penúltimo punto
+                    const p2 = coords[coords.length - 1]; // Último punto (punta)
+                    
+                    // Calcular ángulo en grados usando trigonometría básica
+                    const dx = p2[0] - p1[0];
+                    const dy = p2[1] - p1[1];
+                    const angle = Math.atan2(-dy, dx) * (180 / Math.PI);
+                    
+                    // Crear icono SVG con la punta más pequeña y estilizada
+                    const iconoHarpon = L.divIcon({
+                        className: 'vector-harpon-icon',
+                        html: `<svg width="18" height="18" viewBox="0 0 24 24" style="display: block; overflow: visible; transform: rotate(${angle}deg); transform-origin: center;">
+                                 <!-- Eje principal y cabeza de flecha más compacta -->
+                                 <path d="M 4 12 L 22 12 M 17 9 L 22 12 L 17 15" fill="none" stroke="#0000FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                               </svg>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    
+                    // Añadir la punta al grupo de la capa
+                    const markerPunta = L.marker([p2[1], p2[0]], { icon: iconoHarpon });
+                    grupoAbs.addLayer(markerPunta);
+                }
+            }
+        }
+    });
+
+    grupoAbs.addLayer(lineasAbs);
+    capaAbs = grupoAbs; 
+}
+        
+        // 4. Posiciones geográficas configuradas para cada una de las 13 tarjetas en orden
+        const pasosCoordenadas = [
+          { nombre: "Intro y Tectónica", coords: [13.75, -88.90], zoom: 9 },      // 0
+          { nombre: "Antecedentes", coords: [13.70, -89.00], zoom: 9 },         // 1
+          { nombre: "Complejo Santa Ana", coords: [13.853, -89.631], zoom: 12 },  // 2
+          { nombre: "Complejo San Miguel", coords: [13.425, -88.268], zoom: 12 }, // 3
+          { nombre: "Estaciones Permanentes", coords: [13.75, -88.90], zoom: 9 }, // 4
+          { nombre: "Procesamiento", coords: [13.75, -88.90], zoom: 9 },       // 5
+          { nombre: "Vectores Horizontales", coords: [13.75, -88.90], zoom: 9 },  // 6
+          { nombre: "Vectores Verticales", coords: [13.75, -88.90], zoom: 9 },   // 7
+          { nombre: "Vectores Relativos", coords: [13.75, -88.90], zoom: 9 },   // 8
+          { nombre: "Cambios Temporales", coords: [13.75, -88.90], zoom: 9 },   // 9
+          { nombre: "Serie Norte", coords: [13.75, -88.90], zoom: 9 },          // 10
+          { nombre: "Serie Este", coords: [13.75, -88.90], zoom: 9 },           // 11
+          { nombre: "Serie Vertical", coords: [13.75, -88.90], zoom: 9 }        // 12
+        ];
+
+        // 5. Configuración de Scrollama para controlar mapa y capas
+        const scroller = scrollama();
+
+        scroller
+          .setup({
+            step: '.step',
+            offset: 0.5,
+            debug: false
+          })
+          .onStepEnter(response => {
+            const stepIndex = response.index;
+            
+            // Resaltar tarjeta activa
+            document.querySelectorAll('.step').forEach((el, idx) => {
+              if (idx === stepIndex) {
+                el.classList.add('is-active');
+              } else {
+                el.classList.remove('is-active');
+              }
+            });
+
+            // Mover mapa de forma fluida a la coordenada asignada
+            const destino = pasosCoordenadas[stepIndex];
+            if (destino) {
+              mapa.flyTo(destino.coords, destino.zoom, {
+                duration: 1.5,
+                easeLinearity: 0.25
+              });
+            }
+
+            // Limpiar capas previas si existen
+            if (capaFallas && mapa.hasLayer(capaFallas)) mapa.removeLayer(capaFallas);
+            if (capaPermanentes && mapa.hasLayer(capaPermanentes)) mapa.removeLayer(capaPermanentes);
+            if (capaCampana && mapa.hasLayer(capaCampana)) mapa.removeLayer(capaCampana);
+            if (capaVert && mapa.hasLayer(capaVert)) mapa.removeLayer(capaVert);
+            if (capaPeriodos && mapa.hasLayer(capaPeriodos)) mapa.removeLayer(capaPeriodos);
+            if (capaCaribe && mapa.hasLayer(capaCaribe)) mapa.removeLayer(capaCaribe);
+            if (capaAbs && mapa.hasLayer(capaAbs)) mapa.removeLayer(capaAbs);
+
+// Controlar visibilidad según el paso activo real (índices 0 al 12)
+          const panelGraficas = document.getElementById('panel-graficas');
+          const tituloGrafica = document.getElementById('titulo-grafica');
+          const imgGrafica = document.getElementById('imagen-grafica');
+          const panelImgPequena = document.getElementById('panel-imagen-pequena');
+          const tituloImgPequena = document.getElementById('titulo-img-pequena');
+          const imgPequena = document.getElementById('img-pequena');
+
+// ... y más abajo ya sigue tu código de carga de datos (await cargarGeoJSON...)
+
+          // Ocultar el panel por defecto en los primeros pasos, se abrirá solo en las series temporales
+          panelGraficas.style.display = 'none';
+
+switch (response.index) {
+    case 0: // Tarjeta inicial: Contexto Tectónico
+        if (capaFallas && !mapa.hasLayer(capaFallas)) {
+            mapa.addLayer(capaFallas);
+        }
+        panelImgPequena.style.display = 'block'; // SÍ se muestra aquí
+        tituloImgPequena.innerText = "Contexto Tectónico";
+        imgPequena.src = "graficas/placas_tectonicas.jpeg";
+        panelGraficas.style.display = 'none';
+        break;
+
+            case 1: // Tarjeta 2: Antecedentes
+            case 2: // Tarjeta 3: Complejo Santa Ana
+            case 3: // Tarjeta 4: Complejo San Miguel
+              if (capaFallas) mapa.addLayer(capaFallas);
+              if (capaCampana) mapa.addLayer(capaCampana); 
+              panelImgPequena.style.display = 'none'; // Se oculta
+              panelGraficas.style.display = 'none';
+              break;
+
+            case 4: // Tarjeta 5: Red de Estaciones (Permanentes)
+              if (capaPermanentes) mapa.addLayer(capaPermanentes);
+              panelImgPequena.style.display = 'none'; // Se oculta
+              panelGraficas.style.display = 'none';
+              break;
+
+            case 5: // Tarjeta 6: Consideraciones del Procesamiento
+              panelGraficas.style.display = 'flex';
+              tituloGrafica.innerText = "Recolección de datos";
+              imgGrafica.src = "graficas/GRAFICA_RECOLECCION.png"; // Cambia el nombre si es otra imagen
+              panelImgPequena.style.display = 'none'; // Se oculta
+              break;
+
+            case 6: // Tarjeta 7: Vectores Horizontales / Absolutos
+              if (capaAbs) mapa.addLayer(capaAbs);
+              panelImgPequena.style.display = 'none'; // Se oculta
+              panelGraficas.style.display = 'none';
+              break;
+
+            case 7: // Tarjeta 8: Vectores Verticales
+              if (capaVert) mapa.addLayer(capaVert);
+              panelImgPequena.style.display = 'none'; // Se oculta
+              panelGraficas.style.display = 'none';
+              break;
+
+            case 8: // Tarjeta 9: Vectores Relativos (Caribe Fijo)
+              if (capaCaribe) mapa.addLayer(capaCaribe);
+              panelImgPequena.style.display = 'none'; // Se oculta
+              panelGraficas.style.display = 'none';
+              break;
+            
+              case 9: // Tarjeta 10: Variaciones Temporales
+              panelGraficas.style.display = 'flex';
+              tituloGrafica.innerText = "Variaciones Temporales";
+              imgGrafica.src = "graficas/VARIACIONES.png";
+              break;
+
+            case 10: // Tarjeta 11: Serie de Tiempo Norte
+              panelGraficas.style.display = 'flex';
+              tituloGrafica.innerText = "Serie de Tiempo Componente Norte";
+              imgGrafica.src = "graficas/N_en26.png";
+              panelImgPequena.style.display = 'none'; // Se oculta
+              break;
+
+            case 11: // Tarjeta 12: Serie de Tiempo Este
+              panelGraficas.style.display = 'flex';
+              tituloGrafica.innerText = "Serie de Tiempo Componente Este";
+              imgGrafica.src = "graficas/E_itrf14.png";
+              panelImgPequena.style.display = 'none'; // Se oculta
+              break;
+
+            case 12: // Tarjeta 13: Serie de Tiempo Vertical
+              panelGraficas.style.display = 'flex';
+              tituloGrafica.innerText = "Serie de Tiempo Componente Vertical";
+              imgGrafica.src = "graficas/V_en26.png";
+              panelImgPequena.style.display = 'none'; // Se oculta
+              break;
+
+            default: // <--- ESTO ES LO QUE FALTA
+               panelGraficas.style.display = 'none';
+               break;
+          }
+          });
+
+        window.addEventListener('resize', scroller.resize);
+    });
+  </script>
+
+</body>
+</html>
