@@ -932,23 +932,36 @@ switch (response.index) {
               imgGrafica.src = "graficas/VARIACIONES.png";
               break;
 
-            case 10: // Tarjeta 11: Series de Tiempo (Ambas imágenes)
-            panelGraficas.style.display = 'flex';
-            tituloGrafica.innerText = "Series de Tiempo — Componentes Geodésicos";
-            panelGraficas.innerHTML = `
-                <div style="font-weight: 600; margin-bottom: 8px;" id="tituloGrafica">Series de Tiempo — Componentes Geodésicos</div>
-                <img src="graficas/N_en26.png" style="width: 100%; margin-bottom: 12px; border-radius: 4px;">
-                <img src="graficas/imagen.png" style="width: 100%; border-radius: 4px;">
-           `;
-           panelImgPequena.style.display = 'none';
-           break;
+case 10: // Tarjeta 11: Series de Tiempo
+    panelGraficas.style.display = 'flex';
+    tituloGrafica.innerText = "Series de Tiempo — Componentes Geodésicos";
+    
+    // Asignamos la primera imagen a la etiqueta principal que ya conoce el script
+    imgGrafica.src = "graficas/N_en26.png";
+    
+    // Y si quieres apilar la segunda justo abajo, la inyectamos en un contenedor o creamos un div temporal
+    // Asegúrate de cambiar "tu_nueva_imagen.png" por el nombre real de tu archivo en GitHub
+    let contenedorDoble = document.getElementById('contenedor-doble-grafica');
+    if (!contenedorDoble) {
+        contenedorDoble = document.createElement('div');
+        contenedorDoble.id = 'contenedor-doble-grafica';
+        imgGrafica.parentNode.insertBefore(contenedorDoble, imgGrafica.nextSibling);
+    }
+    contenedorDoble.innerHTML = `<img src="graficas/imagen.png" style="width: 100%; margin-top: 10px; border-radius: 4px;">`;
 
-            case 11: // Tarjeta 12: Serie de Tiempo Este
-              panelGraficas.style.display = 'flex';
-              tituloGrafica.innerText = "Serie de Tiempo Componente Este";
-              imgGrafica.src = "graficas/E_itrf14.png";
-              panelImgPequena.style.display = 'none'; // Se oculta
-              break;
+    panelImgPequena.style.display = 'none';
+    break;
+
+case 11: // Tarjeta 12: Serie de Tiempo Este
+    // Limpiamos el contenedor doble si salimos de la tarjeta 10 para que no estorbe
+    let extraDiv = document.getElementById('contenedor-doble-grafica');
+    if (extraDiv) extraDiv.innerHTML = '';
+
+    panelGraficas.style.display = 'flex';
+    tituloGrafica.innerText = "Serie de Tiempo Componente Este";
+    imgGrafica.src = "graficas/E_itrf14.png";
+    panelImgPequena.style.display = 'none';
+    break;
 
             case 12: // Tarjeta 13: Serie de Tiempo Vertical
               panelGraficas.style.display = 'flex';
