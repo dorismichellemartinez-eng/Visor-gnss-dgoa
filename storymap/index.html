@@ -926,53 +926,58 @@ switch (response.index) {
               panelGraficas.style.display = 'none';
               break;
             
-              case 9: // Tarjeta 10: Variaciones Temporales
-              panelGraficas.style.display = 'flex';
-              tituloGrafica.innerText = "Variaciones Temporales";
-              imgGrafica.src = "graficas/VARIACIONES.png";
-              break;
+case 9: // Variaciones Temporales
+    if (panelGraficas) panelGraficas.style.display = 'flex';
+    if (tituloGrafica) tituloGrafica.innerText = "Variaciones Temporales";
+    if (imgGrafica) imgGrafica.src = "graficas/VARIACIONES.png";
+    if (panelImgPequena) panelImgPequena.style.display = 'none';
+    break;
 
-case 10: // Tarjeta 11: Series de Tiempo
-    panelGraficas.style.display = 'flex';
-    tituloGrafica.innerText = "Series de Tiempo — Componentes Geodésicos";
+case 10: // Series de Tiempo (Doble gráfica)
+    if (panelGraficas) panelGraficas.style.display = 'flex';
+    if (tituloGrafica) tituloGrafica.innerText = "Series de Tiempo — Componentes Geodésicos";
     
-    // Asignamos la primera imagen a la etiqueta principal que ya conoce el script
-    imgGrafica.src = "graficas/N_en26.png";
+    // Si la imagen principal existe, cargamos la primera
+    if (imgGrafica) imgGrafica.src = "graficas/N_en26.png";
     
-    // Y si quieres apilar la segunda justo abajo, la inyectamos en un contenedor o creamos un div temporal
-    // Asegúrate de cambiar "tu_nueva_imagen.png" por el nombre real de tu archivo en GitHub
+    // Inyectamos la segunda imagen de forma segura
     let contenedorDoble = document.getElementById('contenedor-doble-grafica');
-    if (!contenedorDoble) {
+    if (!contenedorDoble && imgGrafica) {
         contenedorDoble = document.createElement('div');
         contenedorDoble.id = 'contenedor-doble-grafica';
         imgGrafica.parentNode.insertBefore(contenedorDoble, imgGrafica.nextSibling);
     }
-    contenedorDoble.innerHTML = `<img src="graficas/imagen.png" style="width: 100%; margin-top: 10px; border-radius: 4px;">`;
-
-    panelImgPequena.style.display = 'none';
+    if (contenedorDoble) {
+        contenedorDoble.innerHTML = `<img src="graficas/tu_nueva_imagen.png" style="width: 100%; margin-top: 10px; border-radius: 4px;">`;
+    }
+    
+    if (panelImgPequena) panelImgPequena.style.display = 'none';
     break;
 
-case 11: // Tarjeta 12: Serie de Tiempo Este
-    // Limpiamos el contenedor doble si salimos de la tarjeta 10 para que no estorbe
-    let extraDiv = document.getElementById('contenedor-doble-grafica');
-    if (extraDiv) extraDiv.innerHTML = '';
+case 11: // Serie de Tiempo Este
+    // Limpiamos el contenedor doble al salir
+    let extraDiv11 = document.getElementById('contenedor-doble-grafica');
+    if (extraDiv11) extraDiv11.innerHTML = '';
 
-    panelGraficas.style.display = 'flex';
-    tituloGrafica.innerText = "Serie de Tiempo Componente Este";
-    imgGrafica.src = "graficas/E_itrf14.png";
-    panelImgPequena.style.display = 'none';
+    if (panelGraficas) panelGraficas.style.display = 'flex';
+    if (tituloGrafica) tituloGrafica.innerText = "Serie de Tiempo Componente Este";
+    if (imgGrafica) imgGrafica.src = "graficas/E_itrf14.png";
+    if (panelImgPequena) panelImgPequena.style.display = 'none';
     break;
 
-            case 12: // Tarjeta 13: Serie de Tiempo Vertical
-              panelGraficas.style.display = 'flex';
-              tituloGrafica.innerText = "Serie de Tiempo Componente Vertical";
-              imgGrafica.src = "graficas/V_en26.png";
-              panelImgPequena.style.display = 'none'; // Se oculta
-              break;
+case 12: // Serie de Tiempo Vertical
+    let extraDiv12 = document.getElementById('contenedor-doble-grafica');
+    if (extraDiv12) extraDiv12.innerHTML = '';
 
-            default: // <--- ESTO ES LO QUE FALTA
-               panelGraficas.style.display = 'none';
-               break;
+    if (panelGraficas) panelGraficas.style.display = 'flex';
+    if (tituloGrafica) tituloGrafica.innerText = "Serie de Tiempo Componente Vertical";
+    if (imgGrafica) imgGrafica.src = "graficas/V_en26.png";
+    if (panelImgPequena) panelImgPequena.style.display = 'none';
+    break;
+
+default:
+    if (panelGraficas) panelGraficas.style.display = 'none';
+    break;
           }
           });
 
